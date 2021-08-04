@@ -324,7 +324,7 @@ void application::run()
 			update();
 		render();
 
-		long double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - then).count();
-		_window->setTitle(_title + " [FPS: " + std::to_string(1000.l / elapsed) + "]");
+		uint64_t fps = 1000u / std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - then).count();
+		_window->setTitle(_title + " [FPS: " + std::to_string(fps) + "]");
 	}
 }

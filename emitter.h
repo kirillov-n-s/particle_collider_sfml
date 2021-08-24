@@ -1,12 +1,17 @@
 #pragma once
 #include <random>
 #include "particle.h"
+#include "const.h"
 
 class emitter
 {
 	const float OFFSET = MID_RADIUS + 2.f;
 	const float STEP = 2.f * OFFSET;
 
+	uint32_t _width;
+	uint32_t _height;
+
+	vec2f _start;
 	vec2f _pos;
 	vec2f _max_pos;
 
@@ -20,15 +25,16 @@ class emitter
 	float _sample_charge = 0.f;
 
 public:
-	emitter(uint32_t width, uint32_t height);
+	emitter(uint32_t width, uint32_t height, const vec2f& start = vec2f(0.f, 0.f));
+	void reset();
 
 	particle* operator()();
 	particle* operator()(const vec2f& coords);
 	particle* operator()(const vec2f& coords, float mass, float charge);
 
 	bool is_random() const;
-	float sample_mass() const;
-	float sample_charge() const;
+	float get_sample_mass() const;
+	float get_sample_charge() const;
 
 	void toggle_random();
 	void adjust_mass(float value);

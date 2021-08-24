@@ -22,9 +22,9 @@ inline vec2f& operator*=(vec2f& lhs, const vec2f& rhs)
 	return lhs = lhs * rhs;
 }
 
-inline float dot(const vec2f& lhs, const vec2f& rhs)
+inline float dot(const vec2f& a, const vec2f& b)
 {
-	return lhs.x * rhs.x + lhs.y * rhs.y;
+	return a.x * b.x + a.y * b.y;
 }
 
 inline float len_sqr(const vec2f& vec)
@@ -55,12 +55,4 @@ inline vec2f sgn(const vec2f& vec)
 inline vec2f abs(const vec2f& vec)
 {
 	return vec2f(abs(vec.x), abs(vec.y));
-}
-
-//circle operators
-const float PI = 3.14159265f;
-
-inline float area(float radius)
-{
-	return PI * radius * radius;
 }

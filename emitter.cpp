@@ -1,20 +1,29 @@
 #include "emitter.h"
 
-emitter::emitter(uint32_t width, uint32_t height)
-	: _pos(vec2f(0.f, 0.f)), _max_pos(vec2f(truncf(width / STEP) - 1.f, truncf(height / STEP) - 1.f))
+//public interface
+emitter::emitter(uint32_t width, uint32_t height, const vec2f& start)
+	: _width(width),
+	_height(height),
+	_start(start),
+	_pos(start),
+	_max_pos(start + vec2f(trunc(width / STEP) - 1.f, trunc(height / STEP) - 1.f)),
+	_engine(std::random_device()()),
+	_v(-MAX_VELOCITY, MAX_VELOCITY),
+	_r(MIN_RADIUS, MID_RADIUS),
+	_q(-MAX_CHARGE, MAX_CHARGE)
+{}
+
+void emitter::reset()
 {
-	std::random_device device;
-	_engine = std::mt19937(device());
-	_v = std::uniform_real_distribution<float>(-MAX_VELOCITY, MAX_VELOCITY);
-	_r = std::uniform_real_distribution<float>(MIN_RADIUS, MID_RADIUS);
-	_q = std::uniform_real_distribution<float>(-MAX_CHARGE, MAX_CHARGE);
+	_pos = _start;
+	_max_pos = _start + vec2f(trunc(_width / STEP) - 1.f, trunc(_height / STEP) - 1.f);
 }
 
 particle* emitter::operator()()
 {
-	if (_pos.x > _max_pos.x)
-		if (_pos.y < _max_pos.y)
-			_pos = vec2f(0.f, _pos.y + 1.f);
+	if (_pos.x > _start.x + _max_pos.x)
+		if (_pos.y < _start.y + _max_pos.y)
+			_pos = vec2f(_start.x, _pos.y + 1.f);
 		else
 			throw std::exception("Particle Overflow!");
 	auto c = _pos * STEP + vec2f(OFFSET, OFFSET);
@@ -68,12 +77,12 @@ bool emitter::is_random() const
 	return _random;
 }
 
-float emitter::sample_mass() const
+float emitter::get_sample_mass() const
 {
 	return _sample_mass;
 }
 
-float emitter::sample_charge() const
+float emitter::get_sample_charge() const
 {
 	return _sample_charge;
 }
@@ -81,7 +90,7 @@ float emitter::sample_charge() const
 //sample manip
 void emitter::toggle_random()
 {
-	_random = !_random;
+	_random ^= true;
 }
 
 void emitter::adjust_mass(float value)
@@ -108,6 +117,7 @@ void emitter::nullify_charge()
 	_sample_charge = 0.f;
 }
 
+//sample display
 particle* emitter::construct_sample(const vec2f& coords)
 {
 	float mass = _sample_mass;

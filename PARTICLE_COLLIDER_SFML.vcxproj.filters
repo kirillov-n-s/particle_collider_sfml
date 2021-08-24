@@ -33,9 +33,12 @@
     <ClCompile Include="particlefx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="particleops.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="geometry.h">
+    <ClInclude Include="vecops.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="particle.h">

@@ -151,13 +151,14 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="particle.cpp" />
     <ClCompile Include="particlefx.cpp" />
+    <ClCompile Include="particleops.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="collider.h" />
     <ClInclude Include="emitter.h" />
     <ClInclude Include="const.h" />
     <ClInclude Include="particle.h" />
-    <ClInclude Include="geometry.h" />
+    <ClInclude Include="vecops.h" />
     <ClInclude Include="application.h" />
     <ClInclude Include="particlefx.h" />
   </ItemGroup>

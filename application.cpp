@@ -1,40 +1,38 @@
 #include "application.h"
 
-//drawing utils
-sf::Color application::colorize(float param)
+//print text
+void application::print(const std::string& string, const vec2f& start, uint32_t index)
 {
-	if (param > 127)
-		return sf::Color(255, 255, (param - 128) * 2);
-	return sf::Color(255, param * 2, (128 - param) * 2);
+	_caption.setString(string);
+	_caption.setPosition(start + 2.f * index * _offset);
+	_window->draw(_caption);
+}
 
-	/*if (param > 127)
-		return sf::Color(0, (255 - param) * 2, (param - 128) * 2);
-	return sf::Color((128 - param) * 2, param * 2, 0);*/
+//drawing utils
+sf::Color application::colorize(float prim, float sec)
+{
+	if (prim < 0.f)
+	{
+		if (sec > 127)
+			return sf::Color((sec - 128) * 2, 255, 255);
+		return sf::Color(0, sec * 2, 255);
+	}
+
+	if (sec > 127)
+		return sf::Color(255, (sec - 128) * 2, (255 - sec) * 2);
+	return sf::Color(255, 0, sec * 2);
 }
 
 sf::Drawable* application::picturize(particle* particle)
 {
 	float rad = particle->get_rad();
 	vec2f pos = particle->get_pos();
-	float e_param = _collider->get_elec_param(particle) * 127.f;
-	if (e_param < 0.f)
-		e_param = -e_param + 128.f;
-	float m_param = _collider->get_mech_param(particle) * 255.f;
+	float e_param = _collider->get_elec_stat(particle);
+	float m_param = _collider->get_mech_stat(particle) * 255.f;
 
 	sf::CircleShape* projection = new sf::CircleShape(rad);
 	projection->setPosition(pos.x - rad, pos.y - rad);
-	projection->setFillColor(colorize(m_param));
-
-	/*sf::Color color;
-	if (e_param > 191)
-		color = sf::Color(0, (255 - e_param) * 4, 255);
-	else if (e_param > 127)
-		color = sf::Color(0, 255, 4 * (e_param - 128));
-	else if (e_param > 63)
-		color = sf::Color(255, -4 * (e_param - 127), 0);
-	else
-		color = sf::Color(e_param * 4, 255, 0);
-	projection->setFillColor(color);*/
+	projection->setFillColor(colorize(e_param, m_param));
 
 	return projection;
 }
@@ -43,11 +41,13 @@ sf::Drawable* application::symbolize(particle* particle)
 {
 	float rad = particle->get_rad();
 	vec2f pos = particle->get_pos();
-	char m_param = (char)(_collider->get_mech_param(particle) * 93.f) + 33;
+	float e_param = _collider->get_elec_stat(particle);
+	float m_param = _collider->get_mech_stat(particle) * 255.f;
 
-	sf::Text* symbol = new sf::Text(m_param, _font, 2.f * rad);
+	char c_param = _collider->get_mech_stat(particle) * 93.f + 33;
+	sf::Text* symbol = new sf::Text(c_param, _font, 2.f * rad);
 	symbol->setPosition(pos.x - rad, pos.y - rad);
-	symbol->setFillColor(colorize(m_param));
+	symbol->setFillColor(colorize(e_param, m_param));
 
 	return symbol;
 }
@@ -61,57 +61,11 @@ std::function<sf::Drawable* (particle*)> application::get_conversion()
 
 std::vector<sf::Drawable*> application::get_picture()
 {
-	const auto& particles = _collider->particles();
+	const auto& particles = _collider->get_particles();
 	auto result = std::vector<sf::Drawable*>(particles.size());
 	std::transform(particles.begin(), particles.end(), result.begin(), get_conversion());
 	return result;
 }
-
-//print text
-void application::print(const std::string& string, const vec2f& start, uint32_t index)
-{
-	_caption.setString(string);
-	_caption.setPosition(start + 2.f * index * _offset);
-	_window->draw(_caption);
-}
-
-//particlefx utils
-//void application::create_fx(particle* particle)
-//{
-//	float e_param = _collider->get_elec_param(particle) * 127.f;
-//	if (e_param < 0.f)
-//		e_param = -e_param + 128.f;
-//	sf::Color color;
-//	if (e_param > 127)
-//		color = sf::Color(0, (255 - e_param) * 2, (e_param - 128) * 2);
-//	else
-//		color = sf::Color((128 - e_param) * 2, e_param * 2, 0);
-//
-//	_fx.insert(std::make_pair(particle, particlefx(_pfxcount)));
-//	_fx[particle].set_emitter(_collider->get_position(particle));
-//	_fx[particle].set_color(color);
-//	_fx[particle].update(sf::Time::Zero);
-//}
-//
-//void application::update_fx()
-//{
-//	for (auto& pair : _fx)
-//	{
-//		pair.second.set_emitter(_collider->get_position(pair.first));
-//
-//		float e_param = _collider->get_elec_param(pair.first) * 127.f;
-//		if (e_param < 0.f)
-//			e_param = -e_param + 128.f;
-//		sf::Color color;
-//		if (e_param > 127)
-//			color = sf::Color(0, (255 - e_param) * 2, (e_param - 128) * 2);
-//		else
-//			color = sf::Color((128 - e_param) * 2, e_param * 2, 0);
-//		pair.second.set_color(color);
-//
-//		pair.second.update(_elapsed);
-//	}
-//}
 
 //main loop stages
 void application::handle_events()
@@ -127,10 +81,10 @@ void application::handle_events()
 			switch (event.key.code)
 			{
 			case sf::Keyboard::Space:
-				_paused = !_paused;
+				_paused ^= true;
 				break;
 			case sf::Keyboard::RAlt:
-				_graphic = !_graphic;
+				_graphic ^= true;
 				break;
 			case sf::Keyboard::Enter:
 				_collider->toggle_gravity();
@@ -141,11 +95,41 @@ void application::handle_events()
 			case sf::Keyboard::RShift:
 				_emitter->toggle_random();
 				break;
+
+			case sf::Keyboard::C:
+				_collider->clear();
+				_emitter->reset();
+				break;
+			case sf::Keyboard::R:
+			{
+				auto count = _collider->count();
+				_collider->clear();
+				_emitter->reset();
+				load(count);
+				break;
+			}
+
 			case sf::Keyboard::Escape:
 				_window->close();
 				break;
 			}
 
+			if (_emitter->is_random())
+				continue;
+			switch (event.key.code)
+			{
+			case sf::Keyboard::M:
+				_emitter->average_mass();
+				break;
+			case sf::Keyboard::N:
+				_emitter->nullify_charge();
+				break;
+			}
+
+		}
+
+		if (event.type == sf::Event::KeyPressed)
+		{
 			if (_emitter->is_random())
 				continue;
 			switch (event.key.code)
@@ -162,14 +146,24 @@ void application::handle_events()
 			case sf::Keyboard::Down:
 				_emitter->adjust_charge(-4.f);
 				break;
-			case sf::Keyboard::Insert:
-				_emitter->average_mass();
-				break;
-			case sf::Keyboard::Delete:
-				_emitter->nullify_charge();
+			}
+		}
+
+		if (event.type == sf::Event::MouseButtonPressed)
+		{
+			auto mouse = vec2f(sf::Mouse::getPosition(*_window));
+			if (mouse.x > _collider->width())
+				continue;
+
+			switch (event.mouseButton.button)
+			{
+			case sf::Mouse::Right:
+				if (_held)
+					break;
+				_held = true;
+				_forcepoint = mouse;
 				break;
 			}
-
 		}
 
 		if (event.type == sf::Event::MouseButtonReleased)
@@ -182,15 +176,18 @@ void application::handle_events()
 			switch (event.mouseButton.button)
 			{
 			case sf::Mouse::Left:
-				particle = (*_emitter)(mouse);
-				_collider->launch(particle);
-				//create_fx(particle);
+				particle = _collider->get(mouse);
+				if (particle)
+					_collider->erase(particle);
+				else
+				{
+					particle = (*_emitter)(mouse);
+					_collider->launch(particle);
+				}
 				break;
 			case sf::Mouse::Right:
-				/*particle = _collider->get(mouse);
-				if (particle)
-					_fx.erase(particle);*/
-				_collider->erase(mouse);
+				_held = false;
+				_collider->apply_force(_forcepoint, mouse - _forcepoint);
 				break;
 			}
 		}
@@ -200,14 +197,13 @@ void application::handle_events()
 void application::update()
 {
 	_collider->operate();
-	//update_fx();
 }
 
 void application::render()
 {
 	auto namegrav = [this]()
 	{
-		switch (_collider->gravity())
+		switch (_collider->get_gravity())
 		{
 		case 1:
 			return "natural";
@@ -219,9 +215,6 @@ void application::render()
 	};
 
 	_window->clear();
-
-	/*for (auto& pair : _fx)
-		_window->draw(pair.second);*/
 
 	const auto& drawables = get_picture();
 	for (auto drawable : drawables)
@@ -236,7 +229,7 @@ void application::render()
 	vec2f info_pos = _info.getPosition() + _initial_offset;
 	print("count:\n\t" + std::to_string(_collider->count()), info_pos, ++i);
 	print("gravity:\n\t" + std::string(namegrav()), info_pos, ++i);
-	print("electricity:\n\t" + std::string(_collider->electricity() ? "on" : "off"), info_pos, ++i);
+	print("electricity:\n\t" + std::string(_collider->get_electricity() ? "on" : "off"), info_pos, ++i);
 	print(_paused ? "PAUSED ||" : "PLAYING |>", info_pos, ++++i);
 
 	_window->draw(_sample);
@@ -245,8 +238,8 @@ void application::render()
 	vec2f sample_pos = info_pos + _sample_offset + _initial_offset;
 	bool rnd = _emitter->is_random();
 	print("launch:\n\t" + std::string(rnd ? "RANDOM" : "CUSTOM"), sample_pos, i++);
-	print("mass:\n\t" + (rnd ? "?" : std::to_string(_emitter->sample_mass())), sample_pos, i++);
-	print("charge:\n\t" + (rnd ? "?" : std::to_string(_emitter->sample_charge())), sample_pos, i++);
+	print("mass:\n\t" + (rnd ? "?" : std::to_string(_emitter->get_sample_mass())), sample_pos, i++);
+	print("charge:\n\t" + (rnd ? "?" : std::to_string(_emitter->get_sample_charge())), sample_pos, i++);
 
 	if (!_emitter->is_random())
 	{
@@ -306,7 +299,6 @@ void application::load(uint32_t count)
 	{
 		auto particle = (*_emitter)();
 		_collider->launch(particle);
-		//create_fx(particle);
 	}
 }
 

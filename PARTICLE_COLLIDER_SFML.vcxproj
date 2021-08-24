@@ -150,14 +150,16 @@
     <ClCompile Include="emitter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="particle.cpp" />
+    <ClCompile Include="particlefx.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="collider.h" />
     <ClInclude Include="emitter.h" />
-    <ClInclude Include="utility.h" />
+    <ClInclude Include="const.h" />
     <ClInclude Include="particle.h" />
     <ClInclude Include="geometry.h" />
     <ClInclude Include="application.h" />
+    <ClInclude Include="particlefx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -4,10 +4,12 @@
 int main()
 {
 	collider* cld = new collider(2560, 1440);
-	application app(cld, "Particle Collider");
+	emitter* emt = new emitter(2560, 1440);
+	application app(cld, emt, "Particle Collider");
 
 	app.load(1600);
 	app.run();
 
 	delete cld;
+	delete emt;
 }

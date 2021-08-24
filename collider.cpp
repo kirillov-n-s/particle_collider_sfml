@@ -1,18 +1,18 @@
 #include "collider.h"
 
 //wall-related
-vec2 collider::wall_project(particle* particle, wall wall)
+vec2f collider::wall_project(particle* particle, wall wall)
 {
 	switch (wall)
 	{
 	case wall::top:
-		return vec2(particle->_center.x, 0);
+		return vec2f(particle->get_pos().x, 0);
 	case wall::bottom:
-		return vec2(particle->_center.x, _height);
+		return vec2f(particle->get_pos().x, _height);
 	case wall::left:
-		return vec2(0, particle->_center.y);
+		return vec2f(0, particle->get_pos().y);
 	case collider::wall::right:
-		return vec2(_width, particle->_center.y);
+		return vec2f(_width, particle->get_pos().y);
 	}
 }
 
@@ -21,72 +21,72 @@ float collider::wall_distance(particle* particle, wall wall)
 	return len(wall_path(particle, wall));
 }
 
-vec2 collider::wall_path(particle* particle, wall wall)
+vec2f collider::wall_path(particle* particle, wall wall)
 {
-	return path(particle->_center, wall_project(particle, wall));
+	return wall_project(particle, wall) - particle->get_pos();
 }
 
 bool collider::wall_collides(particle* particle, wall wall)
 {
-	return particle->collides(wall_project(particle, wall));
+	return particle->contains(wall_project(particle, wall));
 }
 
 void collider::wall_resolve_static(particle* particle, wall wall)
 {
-	vec2 n = normalize(wall_path(particle, wall));
-	float d = wall_distance(particle, wall) - particle->_radius;
+	vec2f n = norm(wall_path(particle, wall));
+	float d = wall_distance(particle, wall) - particle->get_rad();
 	particle->move(n * d);
 }
 
 void collider::wall_resolve_dynamic(particle* particle, wall wall)
 {
 	if (wall == wall::left || wall == wall::right)
-		particle->bounce(vec2(-1.f, 1.f));
+		particle->bounce(vec2f(-1.f, 1.f));
 	else
-		particle->bounce(vec2(1.f, -1.f));
+		particle->bounce(vec2f(1.f, -1.f));
 }
 
-//combined outer acceleration applied to specific particle
-vec2 collider::eval_gravity(particle* particle)
+//combined acceleration by various forces
+vec2f collider::eval_gravity(particle* particle)
 {
 	if (!_gravity)
-		return vec2(0.f, 0.f);
-	vec2 result = vec2(0.f, 0.f);
+		return vec2f(0.f, 0.f);
+	vec2f result = vec2f(0.f, 0.f);
 	for (auto attractor : _particles)
 	{
 		if (attractor == particle)
 			continue;
-		auto d = particle->distance(*attractor);
+		auto d = particle->dist(*attractor);
 		auto r = particle->path(*attractor);
-		auto m = attractor->_mass;
-		result += normalize(r) * m / (d * d);
+		auto m = attractor->get_mass();
+		result += norm(r) * m / (d * d);
 	}
 	return result * (float)_gravity;
 }
 
-vec2 collider::eval_electricity(particle* particle)
+vec2f collider::eval_electricity(particle* particle)
 {
 	if (!_electricity)
-		return vec2(0.f, 0.f);
-	vec2 result = vec2(0.f, 0.f);
+		return vec2f(0.f, 0.f);
+	vec2f result = vec2f(0.f, 0.f);
 	for (auto interactor : _particles)
 	{
 		if (interactor == particle)
 			continue;
-		auto d = particle->distance(*interactor);
+		auto d = particle->dist(*interactor);
 		auto r = particle->path(*interactor);
-		auto q1 = particle->_charge;
-		auto q2 = interactor->_charge;
-		result += normalize(r) * q1 * q2 / (d * d);
+		auto q1 = particle->get_charge();
+		auto q2 = interactor->get_charge();
+		result += norm(r) * q1 * q2 / (d * d);
 	}
-	return -result / particle->_mass;
+	return -result / particle->get_mass();
 }
 
 //stages of operating
 void collider::advance_particles()
 {
 	for (auto p : _particles)
-		p->advance();
+		p->advance(1.f / CYCLE_COUNT);
 }
 
 void collider::process_wall_collisions()
@@ -113,7 +113,7 @@ void collider::process_particle_collisions()
 	std::vector<collision> colliding;
 
 	std::sort(_particles.begin(), _particles.end(),
-		[](const auto& lhs, const auto& rhs) { return lhs->_center.x < rhs->_center.x; });
+		[](const auto& lhs, const auto& rhs) { return lhs->get_pos().x < rhs->get_pos().x; });
 
 	active.push_back(_particles.front());
 	for (auto it = _particles.begin() + 1; it != _particles.end(); it++)
@@ -162,27 +162,27 @@ void collider::update_stats()
 {
 	for (auto& p : _particles)
 	{
-		float charge = p->_charge;
+		float charge = p->get_charge();
 		if (charge > _max_pos_charge)
 			_max_pos_charge = charge;
 		else if (charge < _max_neg_charge)
 			_max_neg_charge = charge;
 
-		float speed = len(p->_velocity);
+		float speed = len(p->get_vel());
 		if (speed > _max_speed)
 			_max_speed = speed;
 	}
 }
 
 //get particle by coords
-std::vector<particle*>::iterator collider::get(const vec2& coords)
+std::vector<particle*>::iterator collider::find(const vec2f& coords)
 {
-	return std::find_if(_particles.begin(), _particles.end(), [coords](const auto& p) { return p->collides(coords); });
+	return std::find_if(_particles.begin(), _particles.end(), [coords](const auto& p) { return p->contains(coords); });
 }
 
-//basic public interface
+//public interface
 collider::collider(uint32_t width, uint32_t height)
-	: _width(width), _height(height), _emitter(width, height) {}
+	: _width(width), _height(height) {}
 
 collider::~collider()
 {
@@ -200,11 +200,6 @@ void collider::operate()
 	}
 
 	accelerate_particles();
-
-	/*if (_counter == 0)
-		accelerate_particles();
-	_counter++;
-	_counter %= PERIOD;*/
 
 	update_stats();
 }
@@ -235,75 +230,47 @@ bool collider::electricity() const
 	return _electricity;
 }
 
-bool collider::random() const
-{
-	return _random;
-}
-
-float collider::sample_mass() const
-{
-	return _sample_mass;
-}
-
-float collider::sample_charge() const
-{
-	return _sample_charge;
-}
-
 std::vector<particle*> collider::particles() const
 {
 	return _particles;
 }
 
 //particle data
-vec2 collider::get_position(particle* particle) const
-{
-	return particle->_center;
-}
-
-float collider::get_radius(particle* particle) const
-{
-	return particle->_radius;
-}
-
 float collider::get_mech_param(particle* particle) const
 {
-	return len(particle->_velocity) / _max_speed;
+	return len(particle->get_vel()) / _max_speed;
 }
 
 float collider::get_elec_param(particle* particle) const
 {
-	float q = particle->_charge;
+	float q = particle->get_charge();
 	return q / (q < 0.f ? -_max_neg_charge : _max_pos_charge);
 }
 
-//particle add/remove functionality
-void collider::launch()
+//particle access
+void collider::launch(particle* particle)
 {
-	auto particle = _emitter();
 	_particles.push_back(particle);
 	update_stats();
 }
 
-void collider::launch(const vec2& coords)
+void collider::erase(const vec2f& coords)
 {
-	if (get(coords) != _particles.end())
-		return;
-	if (_random)
-		_particles.push_back(_emitter(coords));
-	else
-		_particles.push_back(_emitter(coords, _sample_mass, _sample_charge));
-	update_stats();
-}
-
-void collider::erase(const vec2& coords)
-{
-	auto it = get(coords);
+	auto it = find(coords);
 	if (it == _particles.end())
 		return;
 	_particles.erase(it);
 }
 
+particle* collider::get(const vec2f& coords)
+{
+	auto it = find(coords);
+	if (it == _particles.end())
+		return nullptr;
+	return *it;
+}
+
+//forces toggle
 void collider::toggle_gravity()
 {
 	if (_gravity == 1)
@@ -315,49 +282,4 @@ void collider::toggle_gravity()
 void collider::toggle_electricity()
 {
 	_electricity = !_electricity;
-}
-
-void collider::toggle_random()
-{
-	_random = !_random;
-}
-
-void collider::adjust_mass(float value)
-{
-	_sample_mass += value;
-	if (_sample_mass > MAX_RADIUS * MASS_SCALAR)
-		_sample_mass = MAX_RADIUS * MASS_SCALAR;
-	if (_sample_mass < MIN_RADIUS * MASS_SCALAR)
-		_sample_mass = MIN_RADIUS * MASS_SCALAR;
-}
-
-void collider::adjust_charge(float value)
-{
-	_sample_charge += value;
-}
-
-void collider::flip_mass()
-{
-	_sample_mass = _sample_mass > MID_RADIUS * MASS_SCALAR ? MIN_RADIUS * MASS_SCALAR : MAX_RADIUS * MASS_SCALAR;
-}
-
-void collider::flip_charge()
-{
-	_sample_charge = -_sample_charge;
-}
-
-void collider::average_mass()
-{
-	_sample_mass = MID_RADIUS * MASS_SCALAR;
-}
-
-void collider::nullify_charge()
-{
-	_sample_charge = 0.f;
-}
-
-particle* collider::construct_sample(const vec2& coords)
-{
-	float mass = _sample_mass;
-	return new particle(coords, vec2(MAX_VELOCITY, MAX_VELOCITY), mass / MASS_SCALAR, mass, _sample_charge);
 }

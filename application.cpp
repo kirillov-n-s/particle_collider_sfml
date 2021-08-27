@@ -1,11 +1,19 @@
 #include "application.h"
 
-//print text
-void application::print(const std::string& string, const vec2f& start, uint32_t index)
+//text utils
+void application::print(const std::string& string, const vec2f& pos)
 {
 	_caption.setString(string);
-	_caption.setPosition(start + 2.f * index * _offset);
+	_caption.setPosition(pos);
 	_window->draw(_caption);
+}
+
+std::string application::nl(uint32_t n)
+{
+	std::string res;
+	for (int i = 0; i < n; i++)
+		res += '\n';
+	return res;
 }
 
 //drawing utils
@@ -25,8 +33,8 @@ sf::Color application::colorize(float prim, float sec)
 
 sf::Drawable* application::picturize(particle* particle)
 {
-	float rad = particle->get_rad();
-	vec2f pos = particle->get_pos();
+	float rad = particle->rad();
+	vec2f pos = particle->pos();
 	float e_param = _collider->get_elec_stat(particle);
 	float m_param = _collider->get_mech_stat(particle) * 255.f;
 
@@ -39,8 +47,8 @@ sf::Drawable* application::picturize(particle* particle)
 
 sf::Drawable* application::symbolize(particle* particle)
 {
-	float rad = particle->get_rad();
-	vec2f pos = particle->get_pos();
+	float rad = particle->rad();
+	vec2f pos = particle->pos();
 	float e_param = _collider->get_elec_stat(particle);
 	float m_param = _collider->get_mech_stat(particle) * 255.f;
 
@@ -61,7 +69,7 @@ std::function<sf::Drawable* (particle*)> application::get_conversion()
 
 std::vector<sf::Drawable*> application::get_picture()
 {
-	const auto& particles = _collider->get_particles();
+	const auto& particles = _collider->particles();
 	auto result = std::vector<sf::Drawable*>(particles.size());
 	std::transform(particles.begin(), particles.end(), result.begin(), get_conversion());
 	return result;
@@ -86,17 +94,21 @@ void application::handle_events()
 			case sf::Keyboard::RAlt:
 				_graphic ^= true;
 				break;
-			case sf::Keyboard::Enter:
-				_collider->toggle_gravity();
-				break;
 			case sf::Keyboard::RControl:
-				_collider->toggle_electricity();
-				break;
-			case sf::Keyboard::RShift:
 				_emitter->toggle_random();
 				break;
 
+			case sf::Keyboard::Z:
+				_collider->toggle_gravity();
+				break;
+			case sf::Keyboard::X:
+				_collider->toggle_electricity();
+				break;
 			case sf::Keyboard::C:
+				_collider->toggle_drag();
+				break;
+
+			case sf::Keyboard::F:
 				_collider->clear();
 				_emitter->reset();
 				break;
@@ -109,6 +121,16 @@ void application::handle_events()
 				break;
 			}
 
+			case sf::Keyboard::T:
+
+				break;
+			case sf::Keyboard::G:
+
+				break;
+			case sf::Keyboard::B:
+
+				break;
+
 			case sf::Keyboard::Escape:
 				_window->close();
 				break;
@@ -118,10 +140,10 @@ void application::handle_events()
 				continue;
 			switch (event.key.code)
 			{
-			case sf::Keyboard::M:
+			case sf::Keyboard::Home:
 				_emitter->average_mass();
 				break;
-			case sf::Keyboard::N:
+			case sf::Keyboard::Delete:
 				_emitter->nullify_charge();
 				break;
 			}
@@ -130,21 +152,43 @@ void application::handle_events()
 
 		if (event.type == sf::Event::KeyPressed)
 		{
+			switch (event.key.code)
+			{
+			case sf::Keyboard::D:
+
+				break;
+			case sf::Keyboard::A:
+
+				break;
+			case sf::Keyboard::W:
+
+				break;
+			case sf::Keyboard::S:
+
+				break;
+			case sf::Keyboard::E:
+
+				break;
+			case sf::Keyboard::Q:
+
+				break;
+			}
+
 			if (_emitter->is_random())
 				continue;
 			switch (event.key.code)
 			{
 			case sf::Keyboard::Right:
-				_emitter->adjust_mass(4.f);
+				_emitter->adjust_mass(1.f);
 				break;
 			case sf::Keyboard::Left:
-				_emitter->adjust_mass(-4.f);
+				_emitter->adjust_mass(-1.f);
 				break;
 			case sf::Keyboard::Up:
-				_emitter->adjust_charge(4.f);
+				_emitter->adjust_charge(1.f);
 				break;
 			case sf::Keyboard::Down:
-				_emitter->adjust_charge(-4.f);
+				_emitter->adjust_charge(-1.f);
 				break;
 			}
 		}
@@ -161,7 +205,7 @@ void application::handle_events()
 				if (_held)
 					break;
 				_held = true;
-				_forcepoint = mouse;
+				_pos = mouse;
 				break;
 			}
 		}
@@ -180,16 +224,25 @@ void application::handle_events()
 				if (particle)
 					_collider->erase(particle);
 				else
-				{
-					particle = (*_emitter)(mouse);
-					_collider->launch(particle);
-				}
+					_collider->launch((*_emitter)(mouse));
 				break;
 			case sf::Mouse::Right:
 				_held = false;
-				_collider->apply_force(_forcepoint, mouse - _forcepoint);
+				_collider->apply_force(_pos, mouse - _pos);
 				break;
 			}
+		}
+
+		if (event.type == sf::Event::MouseWheelScrolled)
+		{
+			auto mouse = vec2f(sf::Mouse::getPosition(*_window));
+			if (mouse.x > _collider->width())
+				continue;
+
+			if (event.mouseWheelScroll.delta > 0.f)
+				_collider->launch((*_emitter)(mouse));
+			else
+				_collider->erase();
 		}
 	}
 }
@@ -224,22 +277,28 @@ void application::render()
 	}
 
 	_window->draw(_info);
-	
-	int i = -1;
 	vec2f info_pos = _info.getPosition() + _initial_offset;
-	print("count:\n\t" + std::to_string(_collider->count()), info_pos, ++i);
-	print("gravity:\n\t" + std::string(namegrav()), info_pos, ++i);
-	print("electricity:\n\t" + std::string(_collider->get_electricity() ? "on" : "off"), info_pos, ++i);
-	print(_paused ? "PAUSED ||" : "PLAYING |>", info_pos, ++++i);
+	std::stringstream str;
+	str << "count:\n\t" << _collider->count() << nl(2)
+		<< "gravity:\n\t" << namegrav() << nl()
+		<< "electricity:\n\t" << (_collider->get_electricity() ? "on" : "off") << nl()
+		<< "drag:\n\t" << (_collider->get_drag() ? "on" : "off") << nl(2)
+		<< (_paused ? "PAUSED ||" : "PLAYING |>");
+	print(str.str(), info_pos);
 
 	_window->draw(_sample);
-
-	i = 0;
 	vec2f sample_pos = info_pos + _sample_offset + _initial_offset;
 	bool rnd = _emitter->is_random();
-	print("launch:\n\t" + std::string(rnd ? "RANDOM" : "CUSTOM"), sample_pos, i++);
-	print("mass:\n\t" + (rnd ? "?" : std::to_string(_emitter->get_sample_mass())), sample_pos, i++);
-	print("charge:\n\t" + (rnd ? "?" : std::to_string(_emitter->get_sample_charge())), sample_pos, i++);
+	str = std::stringstream();
+	str << "launch:\n\t";
+	if (rnd)
+		str << "RANDOM";
+	else
+		str << std::fixed << std::setprecision(1)
+			<< "CUSTOM" << nl()
+			<< "mass:\n\t" << _emitter->get_sample_mass() << nl()
+			<< "charge:\n\t" << _emitter->get_sample_charge();
+	print(str.str(), sample_pos);
 
 	if (!_emitter->is_random())
 	{

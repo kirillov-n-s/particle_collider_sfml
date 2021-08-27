@@ -2,7 +2,7 @@
 
 bool collider::in_bounds(particle* particle) const
 {
-	auto pos = particle->get_pos();
+	auto pos = particle->pos();
 	return pos.x > 0.f && pos.x < _width && pos.y > 0.f && pos.y < _height;
 }
 
@@ -12,13 +12,13 @@ vec2f collider::wall_project(particle* particle, wall wall)
 	switch (wall)
 	{
 	case wall::top:
-		return vec2f(particle->get_pos().x, 0);
+		return vec2f(particle->pos().x, 0);
 	case wall::bottom:
-		return vec2f(particle->get_pos().x, _height);
+		return vec2f(particle->pos().x, _height);
 	case wall::left:
-		return vec2f(0, particle->get_pos().y);
+		return vec2f(0, particle->pos().y);
 	case collider::wall::right:
-		return vec2f(_width, particle->get_pos().y);
+		return vec2f(_width, particle->pos().y);
 	}
 }
 
@@ -29,15 +29,13 @@ float collider::wall_distance(particle* particle, wall wall)
 
 vec2f collider::wall_path(particle* particle, wall wall)
 {
-	return wall_project(particle, wall) - particle->get_pos();
+	return wall_project(particle, wall) - particle->pos();
 }
 
 bool collider::wall_collides(particle* particle, wall wall)
 {
-	//return particle->contains(wall_project(particle, wall));
-
-	auto pos = particle->get_pos();
-	auto rad = particle->get_rad();
+	auto pos = particle->pos();
+	auto rad = particle->rad();
 	switch (wall)
 	{
 	case wall::top:
@@ -55,7 +53,7 @@ void collider::wall_resolve_static(particle* particle, wall wall)
 {
 	vec2f n = norm(wall_path(particle, wall));
 	float d = wall_distance(particle, wall);
-	float r = particle->get_rad();
+	float r = particle->rad();
 	d += !in_bounds(particle) ? r : -r;
 	particle->move(n * d);
 }
@@ -68,7 +66,7 @@ void collider::wall_resolve_dynamic(particle* particle, wall wall)
 		particle->bounce(vec2f(1.f, -1.f));
 }
 
-//combined acceleration by inner forces
+//acceleration by inner forces
 vec2f collider::eval_gravity(particle* particle)
 {
 	if (!_gravity)
@@ -80,7 +78,7 @@ vec2f collider::eval_gravity(particle* particle)
 			continue;
 		auto d = dist(*particle, *attractor);
 		auto r = path(*particle, *attractor);
-		auto m = attractor->get_mass();
+		auto m = attractor->mass();
 		result += norm(r) * m / (d * d);
 	}
 	return result * (float)_gravity;
@@ -97,16 +95,18 @@ vec2f collider::eval_electricity(particle* particle)
 			continue;
 		auto d = dist(*particle, *interactor);
 		auto r = path(*particle, *interactor);
-		auto q1 = particle->get_charge();
-		auto q2 = interactor->get_charge();
+		auto q1 = particle->charge();
+		auto q2 = interactor->charge();
 		result += norm(r) * q1 * q2 / (d * d);
 	}
-	return -result / particle->get_mass();
+	return -result / particle->mass();
 }
 
 vec2f collider::eval_drag(particle* particle)
 {
-	return -particle->get_vel() * DRAG_SCALAR * particle->get_rad() / MID_RADIUS;
+	if (!_drag)
+		return vec2f(0.f, 0.f);
+	return -particle->vel() * particle->rad() / MID_RADIUS;
 }
 
 //stages of operating
@@ -142,7 +142,7 @@ void collider::process_particle_collisions()
 	std::sort(_particles.begin(), _particles.end(),
 		[](const auto& lhs, const auto& rhs)
 		{
-			return lhs->get_pos().x < rhs->get_pos().x;
+			return lhs->pos().x < rhs->pos().x;
 		});
 
 	active.push_back(_particles.front());
@@ -186,7 +186,7 @@ void collider::accelerate_particles()
 	for (auto p : _particles)
 	{
 		auto acceleration = eval_gravity(p) * GRAVITY_SCALAR + eval_electricity(p) * ELECTRICITY_SCALAR;
-		auto drag = eval_drag(p);
+		auto drag = eval_drag(p) * DRAG_SCALAR;
 		p->accelerate(len_sqr(acceleration) > len_sqr(drag) ? acceleration : drag);
 	}
 }
@@ -207,13 +207,13 @@ void collider::update_stats()
 {
 	for (auto& p : _particles)
 	{
-		float charge = p->get_charge();
+		float charge = p->charge();
 		if (charge > _max_pos_charge)
 			_max_pos_charge = charge;
 		else if (charge < _max_neg_charge)
 			_max_neg_charge = charge;
 
-		float speed = len(p->get_vel());
+		float speed = len(p->vel());
 		if (speed > _max_speed)
 			_max_speed = speed;
 	}
@@ -270,6 +270,11 @@ bool collider::get_electricity() const
 	return _electricity;
 }
 
+bool collider::get_drag() const
+{
+	return _drag;
+}
+
 void collider::toggle_gravity()
 {
 	if (_gravity == 1)
@@ -283,8 +288,13 @@ void collider::toggle_electricity()
 	_electricity ^= true;
 }
 
+void collider::toggle_drag()
+{
+	_drag ^= true;
+}
+
 //particle access & manip
-std::vector<particle*> collider::get_particles() const
+std::vector<particle*> collider::particles() const
 {
 	return _particles;
 }
@@ -301,6 +311,15 @@ void collider::erase(particle* particle)
 	if (it == _particles.end())
 		return;
 	_particles.erase(it);
+	_max_speed = _max_pos_charge = _max_neg_charge = 0.f;
+	update_stats();
+}
+
+void collider::erase()
+{
+	_particles.pop_back();
+	_max_speed = _max_pos_charge = _max_neg_charge = 0.f;
+	update_stats();
 }
 
 particle* collider::get(const vec2f& coords) const
@@ -326,23 +345,23 @@ void collider::clear()
 //particle stats
 float collider::get_mech_stat(particle* particle) const
 {
-	return len(particle->get_vel()) / _max_speed;
+	return len(particle->vel()) / _max_speed;
 }
 
 float collider::get_elec_stat(particle* particle) const
 {
-	float q = particle->get_charge();
+	float q = particle->charge();
 	return q / (q < 0.f ? -_max_neg_charge : _max_pos_charge);
 }
 
-//outer forces
+//instant force
 void collider::apply_force(const vec2f& point, const vec2f& vec)
 {
 	auto force = vec * FORCE_SCALAR;
 	for (auto& p : _particles)
 	{
-		auto m = p->get_mass();
-		auto r = len(p->get_pos() - point);
+		auto m = p->mass();
+		auto r = len(p->pos() - point);
 		if (r < 1.f)
 			r = 1.f;
 		p->accelerate(force / m / r);

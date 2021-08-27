@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/System/Vector2.hpp>
+#include <SFML/System/Vector3.hpp>
 #include <cmath>
 
 //generic sign function
@@ -55,4 +56,26 @@ inline vec2f sgn(const vec2f& vec)
 inline vec2f abs(const vec2f& vec)
 {
 	return vec2f(abs(vec.x), abs(vec.y));
+}
+
+//3d vector operators
+using vec3f = sf::Vector3f;
+
+inline vec3f cross(const vec3f& a, const vec3f& b)
+{
+	return vec3f(
+		a.y * b.z - a.z * b.y,
+		a.z * b.x - a.x * b.z,
+		a.x * b.y - a.y * b.x);
+}
+
+//3d & 2d conversion
+inline vec2f reduce(const vec3f& vec)
+{
+	return vec2f(vec.x, vec.y);
+}
+
+inline vec3f promote(const vec2f& vec)
+{
+	return vec3f(vec.x, vec.y, 0.f);
 }

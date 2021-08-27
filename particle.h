@@ -1,5 +1,6 @@
 #pragma once
 #include "vecops.h"
+#include "const.h"
 
 class particle
 {
@@ -12,11 +13,11 @@ class particle
 public:
 	particle(const vec2f& center, const vec2f& velocity, float radius, float mass, float charge);
 
-	vec2f get_pos() const;
-	vec2f get_vel() const;
-	float get_rad() const;
-	float get_mass() const;
-	float get_charge() const;
+	vec2f pos() const;
+	vec2f vel() const;
+	float rad() const;
+	float mass() const;
+	float charge() const;
 
 	void move(const vec2f& vector);
 	bool contains(const vec2f& point) const;

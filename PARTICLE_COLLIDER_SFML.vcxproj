@@ -134,6 +134,7 @@
       <PreprocessorDefinitions>SFML_STATIC;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>F:\Programming\SFML-2.5.1-windows-vc15-64-bit\SFML-2.5.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -150,7 +151,6 @@
     <ClCompile Include="emitter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="particle.cpp" />
-    <ClCompile Include="particlefx.cpp" />
     <ClCompile Include="particleops.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -160,7 +160,6 @@
     <ClInclude Include="particle.h" />
     <ClInclude Include="vecops.h" />
     <ClInclude Include="application.h" />
-    <ClInclude Include="particlefx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

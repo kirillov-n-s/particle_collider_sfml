@@ -30,9 +30,6 @@
     <ClCompile Include="application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="particlefx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="particleops.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -54,9 +51,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="const.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="particlefx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

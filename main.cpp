@@ -7,7 +7,7 @@ int main()
 	emitter* emt = new emitter(2560, 1440);
 	application app(cld, emt, "Particle Collider");
 
-	app.load(400);
+	app.load(1000);
 	app.run();
 
 	delete cld;

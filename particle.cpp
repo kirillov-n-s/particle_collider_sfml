@@ -9,27 +9,27 @@ particle::particle(const vec2f& center, const vec2f& velocity, float radius, flo
 {}
 
 //getters
-vec2f particle::get_pos() const
+vec2f particle::pos() const
 {
 	return _center;
 }
 
-vec2f particle::get_vel() const
+vec2f particle::vel() const
 {
 	return _velocity;
 }
 
-float particle::get_rad() const
+float particle::rad() const
 {
 	return _radius;
 }
 
-float particle::get_mass() const
+float particle::mass() const
 {
 	return _mass;
 }
 
-float particle::get_charge() const
+float particle::charge() const
 {
 	return _charge;
 }
@@ -47,7 +47,7 @@ bool particle::contains(const vec2f& point) const
 
 void particle::bounce(const vec2f& vector)
 {
-	_velocity *= vector;
+	_velocity *= vector * (1.f - LOSS);
 }
 
 //state manipulation

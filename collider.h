@@ -26,6 +26,10 @@ class collider
 
 	int _gravity = 1;
 	bool _electricity = true;
+	bool _drag = true;
+
+	vec2f _g_field = vec2f(0.f, 0.f);
+	vec3f _em_field = vec3f(0.f, 0.f, 0.f);
 
 	float _max_speed = 0.f;
 	float _max_pos_charge = 0.f;
@@ -64,12 +68,16 @@ public:
 
 	int get_gravity() const;
 	bool get_electricity() const;
+	bool get_drag() const;
+
 	void toggle_gravity();
 	void toggle_electricity();
+	void toggle_drag();
 
-	std::vector<particle*> get_particles() const;
+	std::vector<particle*> particles() const;
 	void launch(particle* particle);
 	void erase(particle* particle);
+	void erase();
 	particle* get(const vec2f& coords) const;
 	void clear();
 

@@ -48,6 +48,11 @@ inline vec2f norm(const vec2f& vec)
 	return vec / len(vec);
 }
 
+inline vec2f proj(const vec2f& a, const vec2f& b)
+{
+	return dot(a, b) / len_sqr(b) * b;
+}
+
 inline vec2f sgn(const vec2f& vec)
 {
 	return vec2f(sgn(vec.x), sgn(vec.y));

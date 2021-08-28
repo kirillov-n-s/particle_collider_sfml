@@ -1,11 +1,19 @@
 #pragma once
 #include <vector>
 #include <algorithm>
-#include "emitter.h"
+#include "particle.h"
 
 class collider
 {
-	const int CYCLE_COUNT = 4;
+	//operate subdivision
+	const int CYCLES = 4;
+
+	//particle interactions
+	const float NEWTON = 16.f;
+	const float COULOMB = 256.f;
+	const float DRAG = 1.f / 60.f;
+	const float FORCE = 64.f;
+	const float LOSS = 0.f;
 
 	enum class wall
 	{
@@ -28,9 +36,6 @@ class collider
 	bool _electricity = true;
 	bool _drag = true;
 
-	vec2f _g_field = vec2f(0.f, 0.f);
-	vec3f _em_field = vec3f(0.f, 0.f, 0.f);
-
 	float _max_speed = 0.f;
 	float _max_pos_charge = 0.f;
 	float _max_neg_charge = 0.f;
@@ -44,9 +49,9 @@ class collider
 	void wall_resolve_static(particle* particle, wall wall);
 	void wall_resolve_dynamic(particle* particle, wall wall);
 
-	vec2f eval_gravity(particle* particle);
+	/*vec2f eval_gravity(particle* particle);
 	vec2f eval_electricity(particle* particle);
-	vec2f eval_drag(particle* particle);
+	vec2f eval_drag(particle* particle);*/
 
 	void advance_particles();
 	void process_wall_collisions();

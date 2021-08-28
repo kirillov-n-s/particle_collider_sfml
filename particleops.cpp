@@ -48,6 +48,8 @@ void resolve_static(particle& p1, particle& p2)
 	vec2f v = n * d;
 	p1.move(v);
 	p2.move(-v);
+	p1._acceleration += proj(p2._acceleration, v);
+	p2._acceleration += proj(p1._acceleration, v);
 }
 
 void resolve_dynamic(particle& p1, particle& p2)

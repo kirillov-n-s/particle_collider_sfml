@@ -6,6 +6,7 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 #include "collider.h"
+#include "emitter.h"
 
 class application
 {
@@ -20,19 +21,19 @@ class application
 
 	sf::Font _font;
 	const uint32_t _font_size = 32u;
-	const vec2f _initial_offset = vec2f(8.f, 4.f);
-	const vec2f _offset = vec2f(0.f, _font_size + _initial_offset.y);
-	sf::Text _caption;
+	const vec2f _start = vec2f(8.f, 4.f);
+	const vec2f _offset = vec2f(0.f, _font_size + _start.y);
+	sf::Text _text;
 	void print(const std::string& string, const vec2f& pos);
 	std::string nl(uint32_t n = 1);
 
 	sf::RectangleShape _info;
 	const uint32_t _info_width = 256;
 
-	sf::RectangleShape _sample;
-	const uint32_t _sample_width = _info_width - _initial_offset.x * 2.f;
-	const uint32_t _sample_height = _initial_offset.y + _offset.y * 7.f + MAX_RADIUS * 2.f;
-	vec2f _sample_offset;
+	sf::RectangleShape _emitprops;
+	const uint32_t _emitprops_width = _info_width - _start.x * 2.f;
+	const uint32_t _emitprops_height = _start.y + _offset.y * 9.5f;
+	vec2f _emitprops_offset;
 
 	sf::Color colorize(float prim, float sec);
 	sf::Drawable* picturize(particle* particle);

@@ -156,7 +156,6 @@
   <ItemGroup>
     <ClInclude Include="collider.h" />
     <ClInclude Include="emitter.h" />
-    <ClInclude Include="const.h" />
     <ClInclude Include="particle.h" />
     <ClInclude Include="vecops.h" />
     <ClInclude Include="application.h" />

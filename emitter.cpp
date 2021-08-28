@@ -1,105 +1,115 @@
 #include "emitter.h"
 
-//public interface
-emitter::emitter(uint32_t width, uint32_t height, const vec2f& start)
-	: _width(width),
-	_height(height),
-	_start(start),
-	_pos(start),
-	_max_pos(start + vec2f(trunc(width / STEP) - 1.f, trunc(height / STEP) - 1.f)),
-	_engine(std::random_device()()),
-	_v(-MAX_VELOCITY, MAX_VELOCITY),
-	_r(MIN_RADIUS, MID_RADIUS),
-	_q(-MAX_CHARGE, MAX_CHARGE)
-{}
-
-void emitter::reset()
-{
-	_pos = _start;
-	_max_pos = _start + vec2f(trunc(_width / STEP) - 1.f, trunc(_height / STEP) - 1.f);
-}
-
-particle* emitter::operator()()
-{
-	if (_pos.x > _start.x + _max_pos.x)
-		if (_pos.y < _start.y + _max_pos.y)
-			_pos = vec2f(_start.x, _pos.y + 1.f);
-		else
-			throw std::exception("Particle Overflow!");
-	auto c = _pos * STEP + vec2f(OFFSET, OFFSET);
-	_pos += vec2f(1.f, 0.f);
-
-	auto v = vec2f(_v(_engine), _v(_engine));
-	float r, m, q;
-	if (_random)
-	{
-		r = _r(_engine);
-		m = r * MASS_SCALAR;
-		q = _q(_engine);
-	}
-	else
-	{
-		r = _sample_mass / MASS_SCALAR;
-		m = _sample_mass;
-		q = _sample_charge;
-	}
-	return new particle(c, v, r, m, q);
-}
-
-particle* emitter::operator()(const vec2f& coords)
+particle* emitter::emit(const vec2f& coords)
 {
 	auto v = vec2f(_v(_engine), _v(_engine));
 	float r, m, q;
 	if (_random)
 	{
 		r = _r(_engine);
-		m = r * MASS_SCALAR;
+		m = r * MASS_UNIT;
 		q = _q(_engine);
 	}
 	else
 	{
-		r = _sample_mass / MASS_SCALAR;
+		r = _sample_mass / MASS_UNIT;
 		m = _sample_mass;
 		q = _sample_charge;
 	}
 	return new particle(coords, v, r, m, q);
 }
 
-particle* emitter::operator()(const vec2f& coords, float mass, float charge)
+//public interface
+emitter::emitter(uint32_t width, uint32_t height)
+	: _width(width),
+	_height(height),
+
+	_engine(std::random_device()()),
+
+	_x(MID_RADIUS, width - MID_RADIUS),
+	_y(MID_RADIUS, height - MID_RADIUS),
+	_v(-MAX_SPEED, MAX_SPEED),
+	_r(MIN_RADIUS, MID_RADIUS),
+	_q(-MAX_CHARGE, MAX_CHARGE),
+
+	_pos(0.f, 0.f),
+	_max_pos(trunc(width / STEP) - 1.f, trunc(height / STEP) - 1.f)
+{}
+
+void emitter::reset()
 {
-	auto v = vec2f(_v(_engine), _v(_engine));
-	return new particle(coords, v, mass / MASS_SCALAR, mass, charge);
+	_pos = vec2f(0.f, 0.f);
+	_max_pos = vec2f(trunc(_width / STEP) - 1.f, trunc(_height / STEP) - 1.f);
 }
 
-//sample data
+particle* emitter::operator()()
+{
+	vec2f p;
+	if (!_uniform)
+		p = vec2f(_x(_engine), _y(_engine));
+	else
+	{
+		if (_pos.x > +_max_pos.x)
+			if (_pos.y < +_max_pos.y)
+				_pos = vec2f(0.f, _pos.y + 1.f);
+			else
+				throw std::exception("Particle Overflow!");
+		p = _pos * STEP + vec2f(OFFSET, OFFSET);
+		_pos += vec2f(1.f, 0.f);
+	}
+	return emit(p);
+}
+
+particle* emitter::operator()(const vec2f& coords)
+{
+	return emit(coords);
+}
+
+particle* emitter::operator()(const vec2f& coords, float mass, float charge)
+{
+	return new particle(coords, vec2f(_v(_engine), _v(_engine)), mass / MASS_UNIT, mass, charge);
+}
+
+//placement
+bool emitter::is_uniform() const
+{
+	return _uniform;
+}
+
+void emitter::toggle_uniform()
+{
+	_uniform ^= true;
+}
+
+//mode
 bool emitter::is_random() const
 {
 	return _random;
 }
 
-float emitter::get_sample_mass() const
-{
-	return _sample_mass;
-}
-
-float emitter::get_sample_charge() const
-{
-	return _sample_charge;
-}
-
-//sample manip
 void emitter::toggle_random()
 {
 	_random ^= true;
 }
 
+//sample data & manip
+float emitter::get_mass() const
+{
+	return _sample_mass;
+}
+
+float emitter::get_charge() const
+{
+	return _sample_charge;
+}
+
 void emitter::adjust_mass(float value)
 {
 	_sample_mass += value;
-	if (_sample_mass > MAX_RADIUS * MASS_SCALAR)
-		_sample_mass = MAX_RADIUS * MASS_SCALAR;
-	if (_sample_mass < MIN_RADIUS * MASS_SCALAR)
-		_sample_mass = MIN_RADIUS * MASS_SCALAR;
+	if (_sample_mass > MAX_RADIUS * MASS_UNIT)
+		_sample_mass = MAX_RADIUS * MASS_UNIT;
+	if (_sample_mass < MIN_RADIUS * MASS_UNIT)
+		_sample_mass = MIN_RADIUS * MASS_UNIT;
 }
 
 void emitter::adjust_charge(float value)
@@ -107,19 +117,7 @@ void emitter::adjust_charge(float value)
 	_sample_charge += value;
 }
 
-void emitter::average_mass()
-{
-	_sample_mass = MID_RADIUS * MASS_SCALAR;
-}
-
 void emitter::nullify_charge()
 {
 	_sample_charge = 0.f;
-}
-
-//sample display
-particle* emitter::construct_sample(const vec2f& coords)
-{
-	float mass = _sample_mass;
-	return new particle(coords, vec2f(MAX_VELOCITY, MAX_VELOCITY), mass / MASS_SCALAR, mass, _sample_charge);
 }

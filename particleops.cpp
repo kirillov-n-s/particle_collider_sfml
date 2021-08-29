@@ -46,10 +46,9 @@ void resolve_static(particle& p1, particle& p2)
 	vec2f n = norm(path(p1, p2));
 	float d = 0.5f * (dist(p1, p2) - p1._radius - p2._radius);
 	vec2f v = n * d;
+
 	p1.move(v);
 	p2.move(-v);
-	p1._acceleration += proj(p2._acceleration, v);
-	p2._acceleration += proj(p1._acceleration, v);
 }
 
 void resolve_dynamic(particle& p1, particle& p2)

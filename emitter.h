@@ -5,17 +5,16 @@
 class emitter
 {
 	//particle limits
-	const float MAX_SPEED = 4.f;
-	const float MAX_CHARGE = 32.f;
+	const float MAX_SPEED = 2.f;
+	const float MAX_CHARGE = 64.f;
 
-	const float MIN_RADIUS = 8.f;
-	const float MID_RADIUS = 16.f;
-	const float MAX_RADIUS = 64.f;
+	const float MIN_RADIUS = 4.f;
+	const float MAX_RADIUS = 16.f;
 
 	const float MASS_UNIT = 1.f;
 
 	//positioning
-	const float OFFSET = MID_RADIUS + 2.f;
+	const float OFFSET = MAX_RADIUS + 2.f;
 	const float STEP = 2.f * OFFSET;
 
 	uint32_t _width;
@@ -54,8 +53,9 @@ public:
 
 	float get_mass() const;
 	float get_charge() const;
-	void adjust_mass(float value);
-	void adjust_charge(float value);
-	void nullify_charge();
+	void mod_mass(float value);
+	void mod_charge(float value);
+	void min_mass();
+	void null_charge();
 };
 

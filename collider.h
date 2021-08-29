@@ -8,12 +8,14 @@ class collider
 	//operate subdivision
 	const int CYCLES = 4;
 
-	//particle interactions
+	//forces
 	const float NEWTON = 16.f;
 	const float COULOMB = 256.f;
 	const float DRAG = 1.f / 60.f;
+	const float GRAVITY = 0.1f;
+	const float ELECTRO = 1.f;
+	const float MAGNET = 0.05f;
 	const float FORCE = 64.f;
-	const float LOSS = 0.f;
 
 	enum class wall
 	{
@@ -32,13 +34,17 @@ class collider
 	uint32_t _width;
 	uint32_t _height;
 
-	int _gravity = 1;
-	bool _electricity = true;
-	bool _drag = true;
+	int _newton = 0;
+	bool _coulomb = false;
+	bool _drag = false;
 
 	float _max_speed = 0.f;
 	float _max_pos_charge = 0.f;
 	float _max_neg_charge = 0.f;
+
+	vec2f _Gfield = ZERO2;
+	vec2f _Efield = ZERO2;
+	vec3f _Bfield = ZERO3;
 
 	bool in_bounds(particle* particle) const;
 
@@ -48,10 +54,6 @@ class collider
 	bool wall_collides(particle* particle, wall wall);
 	void wall_resolve_static(particle* particle, wall wall);
 	void wall_resolve_dynamic(particle* particle, wall wall);
-
-	/*vec2f eval_gravity(particle* particle);
-	vec2f eval_electricity(particle* particle);
-	vec2f eval_drag(particle* particle);*/
 
 	void advance_particles();
 	void process_wall_collisions();
@@ -71,12 +73,12 @@ public:
 	uint32_t height() const;
 	uint32_t count() const;
 
-	int get_gravity() const;
-	bool get_electricity() const;
+	int get_newton() const;
+	bool get_coulomb() const;
 	bool get_drag() const;
 
-	void toggle_gravity();
-	void toggle_electricity();
+	void toggle_newton();
+	void toggle_coulomb();
 	void toggle_drag();
 
 	std::vector<particle*> particles() const;
@@ -86,8 +88,15 @@ public:
 	particle* get(const vec2f& coords) const;
 	void clear();
 
-	float get_mech_stat(particle* particle) const;
-	float get_elec_stat(particle* particle) const;
+	float mech_stat(particle* particle) const;
+	float elec_stat(particle* particle) const;
 
 	void apply_force(const vec2f& point, const vec2f& vec);
+
+	vec2f get_G_field() const;
+	vec3f get_EM_field() const;
+
+	void set_G_field(const vec2f& dir);
+	void set_E_field(const vec2f& dir);
+	void set_B_field(const vec3f& dir);
 };

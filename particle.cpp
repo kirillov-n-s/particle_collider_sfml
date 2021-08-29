@@ -60,12 +60,12 @@ void particle::advance(float scalar)
 {
 	_velocity += _acceleration;
 	_center += _velocity * scalar;
-	_acceleration = vec2f(0.f, 0.f);
+	_acceleration = ZERO2;
 }
 
 void particle::apply_newton(const std::vector<particle*> particles, float scalar)
 {
-	vec2f newton = vec2f(0.f, 0.f);
+	vec2f newton = ZERO2;
 	for (auto p : particles)
 	{
 		if (p == this)
@@ -80,7 +80,7 @@ void particle::apply_newton(const std::vector<particle*> particles, float scalar
 
 void particle::apply_coulomb(const std::vector<particle*> particles, float scalar)
 {
-	vec2f coulomb = vec2f(0.f, 0.f);
+	vec2f coulomb = ZERO2;
 	for (auto p : particles)
 	{
 		if (p == this)
@@ -92,6 +92,16 @@ void particle::apply_coulomb(const std::vector<particle*> particles, float scala
 		coulomb += norm(r) * q1 * q2 / (d * d);
 	}
 	_acceleration += -coulomb / _mass * scalar;
+}
+
+void particle::apply_gravity(const vec2f& grav)
+{
+	_acceleration += grav;
+}
+
+void particle::apply_lorentz(const vec2f& elec, const vec3f& magnet)
+{
+	_acceleration += _charge * (elec + _2f(_3f(_velocity) & magnet)) / _mass;
 }
 
 void particle::apply_drag(float drag)

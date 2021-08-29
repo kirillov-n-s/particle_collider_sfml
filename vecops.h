@@ -13,14 +13,20 @@ inline int sgn(T val)
 //2d vector operators
 using vec2f = sf::Vector2f;
 
-inline vec2f operator*(const vec2f& lhs, const vec2f& rhs)
+const vec2f ZERO2 = vec2f(0.f, 0.f);
+const vec2f UP = vec2f(0.f, -1.f);
+const vec2f DOWN = vec2f(0.f, 1.f);
+const vec2f LEFT = vec2f(-1.f, 0.f);
+const vec2f RIGHT = vec2f(1.f, 0.f);
+
+inline vec2f operator*(const vec2f& a, const vec2f& b)
 {
-	return vec2f(lhs.x * rhs.x, lhs.y * rhs.y);
+	return vec2f(a.x * b.x, a.y * b.y);
 }
 
-inline vec2f& operator*=(vec2f& lhs, const vec2f& rhs)
+inline vec2f& operator*=(vec2f& a, const vec2f& b)
 {
-	return lhs = lhs * rhs;
+	return a = a * b;
 }
 
 inline float dot(const vec2f& a, const vec2f& b)
@@ -28,14 +34,14 @@ inline float dot(const vec2f& a, const vec2f& b)
 	return a.x * b.x + a.y * b.y;
 }
 
-inline float len_sqr(const vec2f& vec)
+inline float len_sqr(const vec2f& a)
 {
-	return dot(vec, vec);
+	return dot(a, a);
 }
 
-inline float len(const vec2f& vec)
+inline float len(const vec2f& a)
 {
-	return sqrt(len_sqr(vec));
+	return sqrt(len_sqr(a));
 }
 
 inline float dist(const vec2f& a, const vec2f& b)
@@ -43,9 +49,9 @@ inline float dist(const vec2f& a, const vec2f& b)
 	return len(b - a);
 }
 
-inline vec2f norm(const vec2f& vec)
+inline vec2f norm(const vec2f& a)
 {
-	return vec / len(vec);
+	return a / len(a);
 }
 
 inline vec2f proj(const vec2f& a, const vec2f& b)
@@ -53,20 +59,25 @@ inline vec2f proj(const vec2f& a, const vec2f& b)
 	return dot(a, b) / len_sqr(b) * b;
 }
 
-inline vec2f sgn(const vec2f& vec)
+inline vec2f orth(const vec2f& a)
 {
-	return vec2f(sgn(vec.x), sgn(vec.y));
+	return vec2f(a.y, -a.x);
 }
 
-inline vec2f abs(const vec2f& vec)
+inline vec2f reflect(const vec2f& a, const vec2f& b)
 {
-	return vec2f(abs(vec.x), abs(vec.y));
+	auto o = norm(orth(a));
+	return a - 2.f * dot(a, o) * o;
 }
 
 //3d vector operators
 using vec3f = sf::Vector3f;
 
-inline vec3f cross(const vec3f& a, const vec3f& b)
+const vec3f ZERO3 = vec3f(0.f, 0.f, 0.f);
+const vec3f FORWARD = vec3f(0.f, 0.f, 1.f);
+const vec3f BACKWARD = vec3f(0.f, 0.f, -1.f);
+
+inline vec3f operator&(const vec3f& a, const vec3f& b)
 {
 	return vec3f(
 		a.y * b.z - a.z * b.y,
@@ -74,13 +85,18 @@ inline vec3f cross(const vec3f& a, const vec3f& b)
 		a.x * b.y - a.y * b.x);
 }
 
-//3d & 2d conversion
-inline vec2f reduce(const vec3f& vec)
+inline vec3f& operator&=(vec3f& a, const vec3f& b)
 {
-	return vec2f(vec.x, vec.y);
+	return a = a & b;
 }
 
-inline vec3f promote(const vec2f& vec)
+//3d & 2d conversion
+inline vec2f _2f(const vec3f& a)
 {
-	return vec3f(vec.x, vec.y, 0.f);
+	return vec2f(a.x, a.y);
+}
+
+inline vec3f _3f(const vec2f& a)
+{
+	return vec3f(a.x, a.y, 0.f);
 }

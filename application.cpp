@@ -35,8 +35,8 @@ sf::Drawable* application::picturize(particle* particle)
 {
 	float rad = particle->rad();
 	vec2f pos = particle->pos();
-	float e_param = _collider->get_elec_stat(particle);
-	float m_param = _collider->get_mech_stat(particle) * 255.f;
+	float e_param = _collider->elec_stat(particle);
+	float m_param = _collider->mech_stat(particle) * 255.f;
 
 	sf::CircleShape* projection = new sf::CircleShape(rad);
 	projection->setPosition(pos.x - rad, pos.y - rad);
@@ -49,10 +49,10 @@ sf::Drawable* application::symbolize(particle* particle)
 {
 	float rad = particle->rad();
 	vec2f pos = particle->pos();
-	float e_param = _collider->get_elec_stat(particle);
-	float m_param = _collider->get_mech_stat(particle) * 255.f;
+	float e_param = _collider->elec_stat(particle);
+	float m_param = _collider->mech_stat(particle) * 255.f;
 
-	char c_param = _collider->get_mech_stat(particle) * 93.f + 33;
+	char c_param = _collider->mech_stat(particle) * 93.f + 33;
 	sf::Text* symbol = new sf::Text(c_param, _font, 2.f * rad);
 	symbol->setPosition(pos.x - rad, pos.y - rad);
 	symbol->setFillColor(colorize(e_param, m_param));
@@ -67,7 +67,7 @@ std::function<sf::Drawable* (particle*)> application::get_conversion()
 	return [this](particle* p) { return symbolize(p); };
 }
 
-std::vector<sf::Drawable*> application::get_picture()
+std::vector<sf::Drawable*> application::get_drawables()
 {
 	const auto& particles = _collider->particles();
 	auto result = std::vector<sf::Drawable*>(particles.size());
@@ -101,16 +101,6 @@ void application::handle_events()
 				_emitter->toggle_uniform();
 				break;
 
-			case sf::Keyboard::Z:
-				_collider->toggle_gravity();
-				break;
-			case sf::Keyboard::X:
-				_collider->toggle_electricity();
-				break;
-			case sf::Keyboard::C:
-				_collider->toggle_drag();
-				break;
-
 			case sf::Keyboard::F:
 				_collider->clear();
 				_emitter->reset();
@@ -124,15 +114,59 @@ void application::handle_events()
 				break;
 			}
 
-			case sf::Keyboard::T:
+			case sf::Keyboard::Z:
+				_collider->toggle_newton();
+				break;
+			case sf::Keyboard::X:
+				_collider->toggle_coulomb();
+				break;
+			case sf::Keyboard::C:
+				_collider->toggle_drag();
+				break;
 
+			case sf::Keyboard::T:
+				_collider->set_E_field(ZERO2);
 				break;
 			case sf::Keyboard::G:
-
+				_collider->set_G_field(ZERO2);
 				break;
 			case sf::Keyboard::B:
-
+				_collider->set_B_field(ZERO3);
 				break;
+
+			case sf::Keyboard::Y:
+				_collider->set_E_field(UP);
+				break;
+			case sf::Keyboard::U:
+				_collider->set_E_field(DOWN);
+				break;
+			case sf::Keyboard::I:
+				_collider->set_E_field(LEFT);
+				break;
+			case sf::Keyboard::O:
+				_collider->set_E_field(RIGHT);
+				break;
+
+			case sf::Keyboard::H:
+				_collider->set_G_field(UP);
+				break;
+			case sf::Keyboard::J:
+				_collider->set_G_field(DOWN);
+				break;
+			case sf::Keyboard::K:
+				_collider->set_G_field(LEFT);
+				break;
+			case sf::Keyboard::L:
+				_collider->set_G_field(RIGHT);
+				break;
+
+			case sf::Keyboard::N:
+				_collider->set_B_field(FORWARD);
+				break;
+			case sf::Keyboard::M:
+				_collider->set_B_field(BACKWARD);
+				break;
+
 
 			case sf::Keyboard::Escape:
 				_window->close();
@@ -144,7 +178,10 @@ void application::handle_events()
 			switch (event.key.code)
 			{
 			case sf::Keyboard::Delete:
-				_emitter->nullify_charge();
+				_emitter->null_charge();
+				break;
+			case sf::Keyboard::Home:
+				_emitter->min_mass();
 				break;
 			}
 
@@ -179,16 +216,16 @@ void application::handle_events()
 			switch (event.key.code)
 			{
 			case sf::Keyboard::Right:
-				_emitter->adjust_mass(1.f);
+				_emitter->mod_mass(1.f);
 				break;
 			case sf::Keyboard::Left:
-				_emitter->adjust_mass(-1.f);
+				_emitter->mod_mass(-1.f);
 				break;
 			case sf::Keyboard::Up:
-				_emitter->adjust_charge(1.f);
+				_emitter->mod_charge(1.f);
 				break;
 			case sf::Keyboard::Down:
-				_emitter->adjust_charge(-1.f);
+				_emitter->mod_charge(-1.f);
 				break;
 			}
 		}
@@ -216,16 +253,8 @@ void application::handle_events()
 			if (mouse.x > _collider->width())
 				continue;
 
-			//particle* particle;
 			switch (event.mouseButton.button)
 			{
-			/*case sf::Mouse::Left:
-				particle = _collider->get(mouse);
-				if (particle)
-					_collider->erase(particle);
-				else
-					_collider->launch((*_emitter)(mouse));
-				break;*/
 			case sf::Mouse::Left:
 				_held = false;
 				_collider->apply_force(_pos, mouse - _pos);
@@ -254,22 +283,25 @@ void application::update()
 
 void application::render()
 {
-	auto namegrav = [this]()
+	auto gfield = _collider->get_G_field();
+	auto emfield = _collider->get_EM_field();
+	std::string newton;
+	switch (_collider->get_newton())
 	{
-		switch (_collider->get_gravity())
-		{
-		case 1:
-			return "natural";
-		case -1:
-			return "inverted";
-		default:
-			return "none";
-		}
-	};
+	case 1:
+		newton = "natural";
+		break;
+	case -1:
+		newton = "inverted";
+		break;
+	default:
+		newton = "off";
+		break;
+	}
 
 	_window->clear();
 
-	const auto& drawables = get_picture();
+	const auto& drawables = get_drawables();
 	for (auto drawable : drawables)
 	{
 		_window->draw(*drawable);
@@ -277,17 +309,20 @@ void application::render()
 	}
 
 	_window->draw(_info);
-	vec2f info_pos = _info.getPosition() + _start;
+	vec2f ipos = _info.getPosition() + _start;
 	std::stringstream str;
-	str << "count:\n\t" << _collider->count() << nl(2)
-		<< "gravity:\n\t" << namegrav() << nl()
-		<< "electricity:\n\t" << (_collider->get_electricity() ? "on" : "off") << nl()
+	str << std::fixed << std::setprecision(0)
+		<< "count:\n\t" << _collider->count() << nl(2)
+		<< "newton's law:\n\t" << newton << nl()
+		<< "coulomb's law:\n\t" << (_collider->get_coulomb() ? "on" : "off") << nl()
 		<< "drag:\n\t" << (_collider->get_drag() ? "on" : "off") << nl(2)
+		<< "gravity field:\n\t(" << gfield.x << ", " << gfield.y << ")" << nl()
+		<< "EM field:\n\t(" << emfield.x << ", " << emfield.y << ", " << emfield.z << ")" << nl(2)
 		<< (_paused ? "PAUSED ||" : "PLAYING |>");
-	print(str.str(), info_pos);
+	print(str.str(), ipos);
 
-	_window->draw(_emitprops);
-	vec2f sample_pos = info_pos + _emitprops_offset + _start;
+	_window->draw(_props);
+	vec2f ppos = ipos + _poffset + _start;
 	str = std::stringstream();
 	str << "placement:\n\t"
 		<< (_emitter->is_uniform() ? "UNIFORM" : "RANDOM") << nl()
@@ -299,7 +334,7 @@ void application::render()
 			<< "CUSTOM" << nl(2)
 			<< "mass:\n\t" << _emitter->get_mass() << nl()
 			<< "charge:\n\t" << _emitter->get_charge();
-	print(str.str(), sample_pos);
+	print(str.str(), ppos);
 
 	_window->display();
 }
@@ -311,28 +346,28 @@ application::application(collider* collider, emitter* emitter, const std::string
 	auto width = _collider->width();
 	auto height = _collider->height();
 
-	_window = new sf::RenderWindow(sf::VideoMode(width + _info_width, height), _title);
+	_window = new sf::RenderWindow(sf::VideoMode(width + _iwidth, height), _title);
 	_window->setVerticalSyncEnabled(true);
 
 	auto bg = sf::Color::Black;
 	auto main = sf::Color::White;
 	auto thickness = -4.f;
 
-	_info = sf::RectangleShape(vec2f(_info_width, height));
+	_info = sf::RectangleShape(vec2f(_iwidth, height));
 	_info.setPosition(vec2f(width, 0.f));
 	_info.setFillColor(bg);
 	_info.setOutlineColor(main);
 	_info.setOutlineThickness(thickness);
 
-	_emitprops_offset = vec2f(_start.x, height - _emitprops_height - _start.y * 2.f);
-	_emitprops = sf::RectangleShape(vec2f(_emitprops_width, _emitprops_height));
-	_emitprops.setPosition(vec2f(width + _start.x, _emitprops_offset.y));
-	_emitprops.setFillColor(bg);
-	_emitprops.setOutlineColor(main);
-	_emitprops.setOutlineThickness(thickness);
+	_poffset = vec2f(_start.x, height - _psize.y - _start.y * 2.f);
+	_props = sf::RectangleShape(_psize);
+	_props.setPosition(vec2f(width + _start.x, _poffset.y));
+	_props.setFillColor(bg);
+	_props.setOutlineColor(main);
+	_props.setOutlineThickness(thickness);
 
 	_font.loadFromFile("cour.ttf");
-	_text = sf::Text("", _font, _font_size);
+	_text = sf::Text("", _font, _fsize);
 	_text.setFillColor(main);
 }
 

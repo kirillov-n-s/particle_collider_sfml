@@ -26,10 +26,10 @@ emitter::emitter(uint32_t width, uint32_t height)
 
 	_engine(std::random_device()()),
 
-	_x(MID_RADIUS, width - MID_RADIUS),
-	_y(MID_RADIUS, height - MID_RADIUS),
+	_x(MAX_RADIUS, width - MAX_RADIUS),
+	_y(MAX_RADIUS, height - MAX_RADIUS),
 	_v(-MAX_SPEED, MAX_SPEED),
-	_r(MIN_RADIUS, MID_RADIUS),
+	_r(MIN_RADIUS, MAX_RADIUS),
 	_q(-MAX_CHARGE, MAX_CHARGE),
 
 	_pos(0.f, 0.f),
@@ -38,7 +38,7 @@ emitter::emitter(uint32_t width, uint32_t height)
 
 void emitter::reset()
 {
-	_pos = vec2f(0.f, 0.f);
+	_pos = ZERO2;
 	_max_pos = vec2f(trunc(_width / STEP) - 1.f, trunc(_height / STEP) - 1.f);
 }
 
@@ -90,6 +90,8 @@ bool emitter::is_random() const
 void emitter::toggle_random()
 {
 	_random ^= true;
+	_sample_mass = MIN_RADIUS * MASS_UNIT;
+	_sample_charge = 0.f;
 }
 
 //sample data & manip
@@ -103,21 +105,24 @@ float emitter::get_charge() const
 	return _sample_charge;
 }
 
-void emitter::adjust_mass(float value)
+void emitter::mod_mass(float value)
 {
 	_sample_mass += value;
-	if (_sample_mass > MAX_RADIUS * MASS_UNIT)
-		_sample_mass = MAX_RADIUS * MASS_UNIT;
 	if (_sample_mass < MIN_RADIUS * MASS_UNIT)
 		_sample_mass = MIN_RADIUS * MASS_UNIT;
 }
 
-void emitter::adjust_charge(float value)
+void emitter::mod_charge(float value)
 {
 	_sample_charge += value;
 }
 
-void emitter::nullify_charge()
+void emitter::min_mass()
+{
+	_sample_mass = MIN_RADIUS * MASS_UNIT;
+}
+
+void emitter::null_charge()
 {
 	_sample_charge = 0.f;
 }

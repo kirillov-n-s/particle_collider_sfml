@@ -5,24 +5,13 @@
 class particle
 {
 	vec2f _center;
-	vec2f _velocity = vec2f(0.f, 0.f);
-	vec2f _acceleration = vec2f(0.f, 0.f);
+	vec2f _velocity = ZERO2;
+	vec2f _acceleration = ZERO2;
 	float _radius;
 	float _mass;
 	float _charge = 0.f;
 
 public:
-	/*struct props
-	{
-		vec2f pos;
-		float rad;
-		float mass;
-
-		vec2f vel = { 0.f, 0.f };
-		vec2f acc = { 0.f, 0.f };
-		float charge = 0.f;
-	};*/
-
 	particle(const vec2f& pos, const vec2f& vel, float rad, float mass, float charge);
 
 	vec2f pos() const;
@@ -39,6 +28,8 @@ public:
 	void advance(float scalar = 1.f);
 	void apply_newton(const std::vector<particle*> particles, float scalar);
 	void apply_coulomb(const std::vector<particle*> particles, float scalar);
+	void apply_gravity(const vec2f& grav);
+	void apply_lorentz(const vec2f& elec, const vec3f& marnet);
 	void apply_drag(float drag);
 	void apply_force(const vec2f& force, const vec2f& point);
 

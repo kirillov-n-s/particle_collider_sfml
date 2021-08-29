@@ -17,7 +17,7 @@ vec2f collider::wall_project(particle* particle, wall wall)
 		return vec2f(particle->pos().x, _height);
 	case wall::left:
 		return vec2f(0, particle->pos().y);
-	case collider::wall::right:
+	case wall::right:
 		return vec2f(_width, particle->pos().y);
 	}
 }
@@ -69,9 +69,9 @@ void collider::wall_resolve_dynamic(particle* particle, wall wall)
 //acceleration by inner forces
 //vec2f collider::eval_gravity(particle* particle)
 //{
-//	if (!_gravity)
-//		return vec2f(0.f, 0.f);
-//	vec2f result = vec2f(0.f, 0.f);
+//	if (!_newton)
+//		return ZERO2;
+//	vec2f result = ZERO2;
 //	for (auto attractor : _particles)
 //	{
 //		if (attractor == particle)
@@ -81,14 +81,14 @@ void collider::wall_resolve_dynamic(particle* particle, wall wall)
 //		auto m = attractor->mass();
 //		result += norm(r) * m / (d * d);
 //	}
-//	return result * (float)_gravity;
+//	return result * (float)_newton;
 //}
 //
 //vec2f collider::eval_electricity(particle* particle)
 //{
-//	if (!_electricity)
-//		return vec2f(0.f, 0.f);
-//	vec2f result = vec2f(0.f, 0.f);
+//	if (!_coulomb)
+//		return ZERO2;
+//	vec2f result = ZERO2;
 //	for (auto interactor : _particles)
 //	{
 //		if (interactor == particle)
@@ -105,7 +105,7 @@ void collider::wall_resolve_dynamic(particle* particle, wall wall)
 //vec2f collider::eval_drag(particle* particle)
 //{
 //	if (!_drag)
-//		return vec2f(0.f, 0.f);
+//		return ZERO2;
 //	return -particle->velocity();
 //}
 
@@ -185,12 +185,14 @@ void collider::accelerate_particles()
 {
 	for (auto p : _particles)
 	{
-		if (_gravity)
-			p->apply_newton(_particles, NEWTON * _gravity);
-		if (_electricity)
+		if (_newton)
+			p->apply_newton(_particles, NEWTON * _newton);
+		if (_coulomb)
 			p->apply_coulomb(_particles, COULOMB);
-		/*if (_drag)
-			p->apply_drag(1.f / 60.f);*/
+		if (_drag)
+			p->apply_drag(1.f / 60.f);
+		p->apply_gravity(_Gfield * GRAVITY);
+		p->apply_lorentz(_Efield * ELECTRO, _Bfield * MAGNET);
 	}
 }
 
@@ -208,7 +210,8 @@ void collider::purge_particles()
 //stats update
 void collider::update_stats()
 {
-	for (auto& p : _particles)
+	_max_speed = _max_pos_charge = _max_neg_charge = 0.f;
+	for (auto p : _particles)
 	{
 		float charge = p->charge();
 		if (charge > _max_pos_charge)
@@ -263,14 +266,14 @@ uint32_t collider::count() const
 }
 
 //inner forces
-int collider::get_gravity() const
+int collider::get_newton() const
 {
-	return _gravity;
+	return _newton;
 }
 
-bool collider::get_electricity() const
+bool collider::get_coulomb() const
 {
-	return _electricity;
+	return _coulomb;
 }
 
 bool collider::get_drag() const
@@ -278,22 +281,26 @@ bool collider::get_drag() const
 	return _drag;
 }
 
-void collider::toggle_gravity()
+void collider::toggle_newton()
 {
-	if (_gravity == 1)
-		_gravity = -1;
+	if (_newton == 1)
+		_newton = -1;
 	else
-		_gravity++;
+		_newton++;
+	if (_newton == 1)
+		_drag = false;
 }
 
-void collider::toggle_electricity()
+void collider::toggle_coulomb()
 {
-	_electricity ^= true;
+	_coulomb ^= true;
 }
 
 void collider::toggle_drag()
 {
 	_drag ^= true;
+	if (_drag && _newton == 1)
+		_newton = 0;
 }
 
 //particle access & manip
@@ -314,14 +321,16 @@ void collider::erase(particle* particle)
 	if (it == _particles.end())
 		return;
 	_particles.erase(it);
-	_max_speed = _max_pos_charge = _max_neg_charge = 0.f;
+	//_max_speed = _max_pos_charge = _max_neg_charge = 0.f;
 	update_stats();
 }
 
 void collider::erase()
 {
+	if (_particles.empty())
+		return;
 	_particles.pop_back();
-	_max_speed = _max_pos_charge = _max_neg_charge = 0.f;
+	//_max_speed = _max_pos_charge = _max_neg_charge = 0.f;
 	update_stats();
 }
 
@@ -346,12 +355,12 @@ void collider::clear()
 }
 
 //particle stats
-float collider::get_mech_stat(particle* particle) const
+float collider::mech_stat(particle* particle) const
 {
 	return len(particle->velocity()) / _max_speed;
 }
 
-float collider::get_elec_stat(particle* particle) const
+float collider::elec_stat(particle* particle) const
 {
 	float q = particle->charge();
 	return q / (q < 0.f ? -_max_neg_charge : _max_pos_charge);
@@ -363,4 +372,30 @@ void collider::apply_force(const vec2f& point, const vec2f& vec)
 	auto force = vec * FORCE;
 	for (auto& p : _particles)
 		p->apply_force(force, point);
+}
+
+//constant forces
+vec2f collider::get_G_field() const
+{
+	return _Gfield;
+}
+
+vec3f collider::get_EM_field() const
+{
+	return _3f(_Efield) + _Bfield;
+}
+
+void collider::set_G_field(const vec2f& dir)
+{
+	_Gfield = dir;
+}
+
+void collider::set_E_field(const vec2f& dir)
+{
+	_Efield = dir;
+}
+
+void collider::set_B_field(const vec3f& dir)
+{
+	_Bfield = dir;
 }
